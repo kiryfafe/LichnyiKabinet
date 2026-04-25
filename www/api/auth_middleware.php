@@ -5,6 +5,7 @@
  */
 
 require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/logger.php';
 
 /**
  * Проверка токена и получение данных пользователя
@@ -14,6 +15,7 @@ function authenticateUser() {
     try {
         $pdo = createPdoUtf8();
     } catch (Exception $e) {
+        Logger::critical("DB connection error in authenticateUser", ['error' => $e->getMessage()]);
         http_response_code(500);
         echo json_encode(["success" => false, "error" => "DB connection error"]);
         return null;
@@ -21,6 +23,7 @@ function authenticateUser() {
 
     $headers = getallheaders();
     if (!isset($headers["Authorization"])) {
+        Logger::security("Missing Authorization header", ['ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown']);
         http_response_code(401);
         echo json_encode(["success" => false, "error" => "Missing token"]);
         return null;
@@ -28,6 +31,7 @@ function authenticateUser() {
 
     list($type, $token) = explode(" ", $headers["Authorization"], 2);
     if (strtolower($type) !== "bearer" || !$token) {
+        Logger::security("Invalid token format", ['ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown']);
         http_response_code(401);
         echo json_encode(["success" => false, "error" => "Invalid token format"]);
         return null;
@@ -42,6 +46,10 @@ function authenticateUser() {
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$user) {
+        Logger::security("Invalid or expired token attempt", [
+            'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+            'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
+        ]);
         http_response_code(401);
         echo json_encode(["success" => false, "error" => "Invalid or expired token"]);
         return null;
@@ -85,43 +93,85 @@ function sanitizeString($data) {
 }
 
 /**
- * Логирование ошибок (можно расширить до записи в файл)
- * @param string $message
- * @param string $level
+ * Rate limiting: защита от brute-force с использованием файлового хранилища
+ * В продакшене рекомендуется использовать Redis/Memcached
+ * 
+ * @param string $action Идентификатор действия (login, register, api и т.д.)
+ * @param int $limit Максимальное количество запросов в окно времени
+ * @param int $window Размер окна времени в секундах
+ * @return bool true если запрос разрешён, false если превышен лимит
  */
-function logError($message, $level = 'ERROR') {
-    error_log("[$level] " . date('Y-m-d H:i:s') . " - " . $message);
-}
-
-// Rate limiting: простая защита от brute-force (30 запросов в минуту на IP)
 function checkRateLimit($action = 'api', $limit = 30, $window = 60) {
     $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
     $key = "rate_limit_{$action}_{$ip}";
     
-    // Используем файл для хранения счётчика (в продакшене лучше Redis/Memcached)
+    // Директория для хранения счётчиков rate limit
     $tmpDir = sys_get_temp_dir() . '/lk_rate_limit';
     if (!is_dir($tmpDir)) {
-        mkdir($tmpDir, 0755, true);
+        @mkdir($tmpDir, 0755, true);
     }
     
     $file = $tmpDir . '/' . md5($key);
     $now = time();
     
-    if (file_exists($file)) {
+    // Блокировка файла для предотвращения race conditions
+    $fp = @fopen($file, 'c+');
+    if ($fp === false) {
+        // Если не удалось открыть файл, разрешаем запрос (fail-open)
+        Logger::warning("Failed to open rate limit file", ['file' => $file, 'ip' => $ip]);
+        return true;
+    }
+    
+    if (!flock($fp, LOCK_EX)) {
+        fclose($fp);
+        Logger::warning("Failed to lock rate limit file", ['file' => $file, 'ip' => $ip]);
+        return true;
+    }
+    
+    $shouldAllow = true;
+    
+    if (filesize($file) > 0) {
         $data = json_decode(file_get_contents($file), true);
         if ($data && ($now - $data['time']) < $window) {
             if ($data['count'] >= $limit) {
-                http_response_code(429);
-                echo json_encode(["success" => false, "error" => "Too many requests. Try again later."]);
-                return false;
+                $shouldAllow = false;
+                Logger::security("Rate limit exceeded", [
+                    'action' => $action,
+                    'ip' => $ip,
+                    'count' => $data['count'],
+                    'limit' => $limit
+                ]);
+            } else {
+                $data['count']++;
+                ftruncate($fp, 0);
+                rewind($fp);
+                fwrite($fp, json_encode($data));
+                fflush($fp);
             }
-            $data['count']++;
-            file_put_contents($file, json_encode($data));
-            return true;
+        } else {
+            // Окно истекло, сбрасываем счётчик
+            $data = ['time' => $now, 'count' => 1];
+            ftruncate($fp, 0);
+            rewind($fp);
+            fwrite($fp, json_encode($data));
+            fflush($fp);
         }
+    } else {
+        // Новый файл, создаём запись
+        $data = ['time' => $now, 'count' => 1];
+        fwrite($fp, json_encode($data));
+        fflush($fp);
     }
     
-    file_put_contents($file, json_encode(['time' => $now, 'count' => 1]));
+    flock($fp, LOCK_UN);
+    fclose($fp);
+    
+    if (!$shouldAllow) {
+        http_response_code(429);
+        echo json_encode(["success" => false, "error" => "Too many requests. Try again later."]);
+        return false;
+    }
+    
     return true;
 }
 
@@ -144,5 +194,24 @@ function generate_secure_token($length = 32) {
         }
     }
     // Самый простой (менее безопасный, но рабочий) резервный вариант
+    Logger::warning("Using weak random generator for token", ['context' => 'generate_secure_token fallback']);
     return bin2hex(md5(uniqid(mt_rand(), true), true));
+}
+
+/**
+ * Улучшенная функция логирования ошибок (обратная совместимость)
+ * @deprecated Используйте Logger::error() напрямую
+ * @param string $message
+ * @param string $level
+ */
+function logError($message, $level = 'ERROR') {
+    if ($level === 'INFO') {
+        Logger::info($message);
+    } elseif ($level === 'WARNING') {
+        Logger::warning($message);
+    } elseif ($level === 'SECURITY') {
+        Logger::security($message);
+    } else {
+        Logger::error($message);
+    }
 }

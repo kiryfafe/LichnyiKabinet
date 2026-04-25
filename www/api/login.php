@@ -17,15 +17,15 @@ if (!function_exists('http_response_code')) {
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/auth_middleware.php';
 
-// Rate limiting для защиты от brute-force
-if (!checkRateLimit('login', 10, 60)) { // 10 попыток в минуту
+// Rate limiting для защиты от brute-force (строже для login - 10 попыток в минуту)
+if (!checkRateLimit('login', 10, 60)) {
     exit;
 }
 
 try {
     $pdo = createPdoUtf8();
 } catch (Exception $e) {
-    logError("DB connection error: " . $e->getMessage());
+    Logger::critical("DB connection error in login", ['error' => $e->getMessage()]);
     http_response_code(500);
     echo json_encode(array("success" => false, "error" => "DB connection error"));
     exit;
@@ -50,6 +50,7 @@ $identifier = isset($input["identifier"]) ? trim($input["identifier"]) : "";
 $password   = isset($input["password"]) ? trim($input["password"]) : "";
 
 if ($identifier === "" || $password === "") {
+    Logger::security("Login attempt with missing credentials", ['ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown']);
     http_response_code(400);
     echo json_encode(array("success" => false, "error" => "Missing credentials"));
     exit;
@@ -65,14 +66,17 @@ try {
     $stmt->execute(array(":identifier" => $identifier));
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
-    logError("Database query error: " . $e->getMessage());
+    Logger::critical("Database query error in login", ['error' => $e->getMessage()]);
     http_response_code(500);
     echo json_encode(array("success" => false, "error" => "Database query error"));
     exit;
 }
 
 if (!$user) {
-    logError("Login attempt for non-existent user: " . sanitizeString($identifier));
+    Logger::security("Login attempt for non-existent user", [
+        'identifier' => sanitizeString($identifier),
+        'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown'
+    ]);
     http_response_code(401);
     echo json_encode(array("success" => false, "error" => "User not found"));
     exit;
@@ -80,7 +84,11 @@ if (!$user) {
 
 // ==================== ПРОВЕРКА ПАРОЛЯ ====================
 if (!password_verify($password, $user["password_hash"])) {
-    logError("Failed login attempt for user: " . sanitizeString($identifier));
+    Logger::security("Failed login attempt (wrong password)", [
+        'identifier' => sanitizeString($identifier),
+        'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+        'user_id' => $user['id']
+    ]);
     http_response_code(401);
     echo json_encode(array("success" => false, "error" => "Invalid password"));
     exit;
@@ -88,31 +96,17 @@ if (!password_verify($password, $user["password_hash"])) {
 
 // Проверка активности пользователя (если есть поле is_active)
 if (isset($user['is_active']) && $user['is_active'] == 0) {
-    logError("Login attempt for inactive user: " . sanitizeString($identifier));
+    Logger::security("Login attempt for inactive user", [
+        'identifier' => sanitizeString($identifier),
+        'user_id' => $user['id'],
+        'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown'
+    ]);
     http_response_code(403);
     echo json_encode(array("success" => false, "error" => "Account is deactivated"));
     exit;
 }
 
 // ==================== СОЗДАНИЕ СЕССИИ ====================
-// Генерация случайного токена с поддержкой старых версий PHP
-function generate_secure_token($length = 32) {
-    // Современный способ, если доступен
-    if (function_exists('random_bytes')) {
-        return bin2hex(random_bytes($length));
-    }
-    // Fallback для старых версий PHP
-    if (function_exists('openssl_random_pseudo_bytes')) {
-        $strong = false;
-        $bytes = openssl_random_pseudo_bytes($length, $strong);
-        if ($bytes !== false && $strong) {
-            return bin2hex($bytes);
-        }
-    }
-    // Самый простой (менее безопасный, но рабочий) резервный вариант
-    return bin2hex(md5(uniqid(mt_rand(), true), true));
-}
-
 try {
     $token = generate_secure_token(32);
     $expires_at = date("Y-m-d H:i:s", strtotime("+1 day"));
@@ -128,7 +122,10 @@ try {
         ":ua"      => isset($_SERVER["HTTP_USER_AGENT"]) ? $_SERVER["HTTP_USER_AGENT"] : null,
         ":expires" => $expires_at
     ));
+    
+    Logger::audit('USER_LOGIN', $user['id'], ['method' => 'password']);
 } catch (Exception $e) {
+    Logger::critical("Failed to create session in login", ['error' => $e->getMessage(), 'user_id' => $user['id']]);
     http_response_code(500);
     echo json_encode(array("success" => false, "error" => "Failed to create session"));
     exit;
@@ -151,5 +148,9 @@ echo json_encode(array(
     )
 ), JSON_UNESCAPED_UNICODE);
 
-logError("Successful login for user: " . sanitizeString($identifier), 'INFO');
+Logger::info("Successful login", [
+    'user_id' => $user['id'],
+    'identifier' => sanitizeString($identifier),
+    'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown'
+]);
 ?>
