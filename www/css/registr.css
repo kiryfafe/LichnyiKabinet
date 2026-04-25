@@ -40,18 +40,14 @@ body {
   color: #2ecc71;
   text-align: center;
   margin-top: 10px;
-  display: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .msg-error {
   color: #e74c3c;
   text-align: center;
   margin-top: 10px;
-  display: none;
-}
-
-.msg-success,
-.msg-error {
   opacity: 0;
   transition: opacity 0.3s ease;
 }
