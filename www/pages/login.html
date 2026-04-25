@@ -39,32 +39,32 @@
 
       if (!identifier || !password) {
         msgError.textContent = "Заполните все поля";
-        msgError.style.display = "block";
-        msgSuccess.style.display = "none";
+        msgError.classList.add("show");
+        msgSuccess.classList.remove("show");
         return;
       }
 
       // Скрываем предыдущие сообщения
-      msgSuccess.style.display = "none";
-      msgError.style.display = "none";
+      msgSuccess.classList.remove("show");
+      msgError.classList.remove("show");
 
       try {
         const ok = await Auth.login(identifier, password);
         if (ok) {
           msgSuccess.textContent = "Успешный вход!";
-          msgSuccess.style.display = "block";
-          msgError.style.display = "none";
+          msgSuccess.classList.add("show");
+          msgError.classList.remove("show");
           setTimeout(() => window.location.href = "../index.html", 1000);
         } else {
           msgError.textContent = "Неверный email/телефон или пароль";
-          msgError.style.display = "block";
-          msgSuccess.style.display = "none";
+          msgError.classList.add("show");
+          msgSuccess.classList.remove("show");
         }
       } catch (e) {
         console.error("Login error:", e);
         msgError.textContent = "Ошибка входа: " + (e.message || "Неизвестная ошибка");
-        msgError.style.display = "block";
-        msgSuccess.style.display = "none";
+        msgError.classList.add("show");
+        msgSuccess.classList.remove("show");
       }
     }
 
