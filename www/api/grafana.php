@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/auth_middleware.php';
 
 if (!defined('GRAFANA_URL') || !defined('GRAFANA_TOKEN')) {
     http_response_code(500);
@@ -7,40 +8,24 @@ if (!defined('GRAFANA_URL') || !defined('GRAFANA_TOKEN')) {
     exit;
 }
 
+// Rate limiting
+if (!checkRateLimit('grafana', 30, 60)) {
+    exit;
+}
+
 $grafanaUrl = GRAFANA_URL;
 $grafanaToken = GRAFANA_TOKEN;
 
 // --- ПРОВЕРКА ТОКЕНА ПОЛЬЗОВАТЕЛЯ ---
-$headers = getallheaders();
-$authHeader = isset($headers["Authorization"]) ? $headers["Authorization"] : "";
-if (!preg_match("/Bearer\s+(.*)$/i", $authHeader, $matches)) {
-    http_response_code(401);
-    echo "Unauthorized (no token)";
-    exit;
-}
-$userToken = $matches[1];
-
-try {
-    $pdo = createPdoUtf8();
-    $stmt = $pdo->prepare("SELECT user_id FROM user_sessions WHERE token = ?");
-    $stmt->execute([$userToken]);
-    $row = $stmt->fetch(PDO::FETCH_ASSOC);
-    if (!$row) {
-        http_response_code(403);
-        echo "Forbidden (invalid token)";
-        exit;
-    }
-} catch (Exception $e) {
-    http_response_code(500);
-    echo "Database error";
+$user = authenticateUser();
+if ($user === null) {
     exit;
 }
 
 // --- ЧТЕНИЕ И ВАЛИДАЦИЯ ПАРАМЕТРА PATH ---
 $requestedPath = isset($_GET["path"]) ? $_GET["path"] : "/";
-// Пример простой валидации: разрешаем только пути, начинающиеся с /d/ (для дашбордов) или /api/
-// Это НЕ полное решение, нужно адаптировать под конкретные нужды
-$allowedPrefixes = ['/d/', '/api/'];
+// Разрешаем только пути для дашбордов
+$allowedPrefixes = ['/d/', '/api/dashboards/'];
 $isValidPath = false;
 
 foreach ($allowedPrefixes as $prefix) {
@@ -52,12 +37,13 @@ foreach ($allowedPrefixes as $prefix) {
 
 if (!$isValidPath) {
     http_response_code(400);
-    echo "Bad Request: Invalid path";
+    echo "Bad Request: Invalid path. Only dashboard paths are allowed.";
     exit;
 }
 
-// Дополнительно: убедимся, что путь не содержит '../' или другие потенциально опасные элементы
-if (strpos($requestedPath, '../') !== false || strpos($requestedPath, '..\\') !== false) {
+// Защита от path traversal
+if (strpos($requestedPath, '../') !== false || strpos($requestedPath, '..\\') !== false || strpos($requestedPath, '//') !== false) {
+    logError("Invalid Grafana path attempt: " . $requestedPath);
     http_response_code(400);
     echo "Bad Request: Invalid path";
     exit;
@@ -69,21 +55,33 @@ $url = rtrim($grafanaUrl, "/") . $requestedPath;
 $ch = curl_init($url);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_HTTPHEADER, [
-    "Authorization: Bearer " . $grafanaToken
+    "Authorization: Bearer " . $grafanaToken,
+    "Accept: application/json"
 ]);
-// ВАЖНО: Убедитесь, что CURLOPT_FOLLOWLOCATION не включен, если вы не контролируете $url!
-// В идеале, используйте proxy_pass веб-сервера, а не PHP для этого.
+curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+
 $response = curl_exec($ch);
 $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+$error = curl_error($ch);
+curl_close($ch);
 
-if ($http_code >= 400) {
-    http_response_code($http_code);
-    echo "Grafana Error"; // В целях безопасности не стоит возвращать детали от Grafana напрямую
+if ($error) {
+    logError("Grafana request error: " . $error);
+    http_response_code(502);
+    header("Content-Type: application/json");
+    echo json_encode(["success" => false, "error" => "Grafana service unavailable"]);
     exit;
 }
 
-// ВАЖНО: Не возвращайте HTML напрямую, если Grafana не настроена на возврат безопасного контента.
-// Лучше использовать iframe с прямым URL или proxy_pass веб-сервера.
-header("Content-Type: text/html; charset=utf-8");
-echo $response; // Это потенциальная XSS уязвимость, если Grafana возвращает вредоносный JS
+if ($http_code >= 400) {
+    logError("Grafana HTTP error: $http_code for path: $requestedPath");
+    http_response_code($http_code);
+    header("Content-Type: application/json");
+    echo json_encode(["success" => false, "error" => "Grafana error"]);
+    exit;
+}
+
+// Возвращаем JSON вместо HTML для безопасности
+header("Content-Type: application/json; charset=utf-8");
+echo $response;
 ?>

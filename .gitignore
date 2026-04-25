@@ -1,0 +1,33 @@
+```
+# Environment files
+.env
+.env.local
+*.env.*
+
+# Dependencies
+vendor/
+
+# Logs
+*.log
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.tmp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# PHP specific
+*.php~
+phpunit.xml.dist
+
+# Cache and build artifacts
+.cache/
+build/
+dist/
+*.phar
+```

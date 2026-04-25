@@ -15,10 +15,17 @@ if (!function_exists('http_response_code')) {
 }
 
 require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/auth_middleware.php';
+
+// Rate limiting для защиты от brute-force
+if (!checkRateLimit('login', 10, 60)) { // 10 попыток в минуту
+    exit;
+}
 
 try {
     $pdo = createPdoUtf8();
 } catch (Exception $e) {
+    logError("DB connection error: " . $e->getMessage());
     http_response_code(500);
     echo json_encode(array("success" => false, "error" => "DB connection error"));
     exit;
@@ -58,12 +65,14 @@ try {
     $stmt->execute(array(":identifier" => $identifier));
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
+    logError("Database query error: " . $e->getMessage());
     http_response_code(500);
     echo json_encode(array("success" => false, "error" => "Database query error"));
     exit;
 }
 
 if (!$user) {
+    logError("Login attempt for non-existent user: " . sanitizeString($identifier));
     http_response_code(401);
     echo json_encode(array("success" => false, "error" => "User not found"));
     exit;
@@ -71,8 +80,17 @@ if (!$user) {
 
 // ==================== ПРОВЕРКА ПАРОЛЯ ====================
 if (!password_verify($password, $user["password_hash"])) {
+    logError("Failed login attempt for user: " . sanitizeString($identifier));
     http_response_code(401);
     echo json_encode(array("success" => false, "error" => "Invalid password"));
+    exit;
+}
+
+// Проверка активности пользователя (если есть поле is_active)
+if (isset($user['is_active']) && $user['is_active'] == 0) {
+    logError("Login attempt for inactive user: " . sanitizeString($identifier));
+    http_response_code(403);
+    echo json_encode(array("success" => false, "error" => "Account is deactivated"));
     exit;
 }
 
@@ -128,7 +146,10 @@ echo json_encode(array(
         "phone"      => $user["phone"],
         "email"      => $user["email"],
         "position"   => $user["position"],
-        "network"    => $user["network"]
+        "network"    => $user["network"],
+        "role"       => isset($user["role"]) ? $user["role"] : "user"
     )
 ), JSON_UNESCAPED_UNICODE);
+
+logError("Successful login for user: " . sanitizeString($identifier), 'INFO');
 ?>

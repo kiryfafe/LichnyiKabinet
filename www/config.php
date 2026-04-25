@@ -32,6 +32,10 @@ $pyrus_token = isset($_ENV['PYRUS_TOKEN']) ? $_ENV['PYRUS_TOKEN'] : null;
 $pyrus_login = isset($_ENV['PYRUS_LOGIN']) ? $_ENV['PYRUS_LOGIN'] : null;
 $pyrus_security_key = isset($_ENV['PYRUS_SECURITY_KEY']) ? $_ENV['PYRUS_SECURITY_KEY'] : null;
 
+// Pyrus Form IDs - вынесены в .env для гибкости
+$pyrus_tasks_form_id = isset($_ENV['PYRUS_TASKS_FORM_ID']) ? $_ENV['PYRUS_TASKS_FORM_ID'] : '1463678';
+$pyrus_restaurants_form_id = isset($_ENV['PYRUS_RESTAURANTS_FORM_ID']) ? $_ENV['PYRUS_RESTAURANTS_FORM_ID'] : '1310341';
+
 if (!$db_host || !$db_name || !$db_user || $db_pass === null || !$grafana_url || !$grafana_token) {
     // Более безопасно, чем просто ошибка, но в реальном приложении нужна логика обработки
     http_response_code(500);
@@ -48,6 +52,8 @@ define('GRAFANA_TOKEN', $grafana_token);
 define('PYRUS_TOKEN', $pyrus_token);
 define('PYRUS_LOGIN', $pyrus_login);
 define('PYRUS_SECURITY_KEY', $pyrus_security_key);
+define('PYRUS_TASKS_FORM_ID', $pyrus_tasks_form_id);
+define('PYRUS_RESTAURANTS_FORM_ID', $pyrus_restaurants_form_id);
 
 /**
  * Создает PDO с явной установкой UTF-8/utf8mb4, чтобы кириллица не искажалась.

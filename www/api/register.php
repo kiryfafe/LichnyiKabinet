@@ -1,13 +1,18 @@
 <?php
-// Убираем отладочный error_log в продакшене
-// error_log("Raw input: " . file_get_contents("php://input"));
-
 require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/auth_middleware.php';
+
 header("Content-Type: application/json; charset=utf-8");
+
+// Rate limiting для регистрации (строже - 5 запросов в минуту)
+if (!checkRateLimit('register', 5, 60)) {
+    exit;
+}
 
 try {
     $pdo = createPdoUtf8();
 } catch (Exception $e) {
+    logError("DB connection error: " . $e->getMessage());
     http_response_code(500);
     echo json_encode(["success" => false, "error" => "DB connection error"]);
     exit;
@@ -26,22 +31,45 @@ $position  = isset($input["position"])   ? trim($input["position"])   : "";
 $network   = isset($input["network"])    ? trim($input["network"])    : "";
 
 // Проверка на обязательные поля
-if (!$firstName || !$lastName || !$email || !$phone || !$password) {
+$validation = validateInput($input, ['first_name', 'last_name', 'email', 'phone', 'password']);
+if ($validation !== true) {
     http_response_code(400);
-    echo json_encode(["success" => false, "error" => "Missing required fields"]);
+    echo json_encode(["success" => false, "errors" => $validation]);
     exit;
 }
 
-// Дополнительная валидация (пример)
+// Дополнительная валидация
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     http_response_code(400);
     echo json_encode(["success" => false, "error" => "Invalid email format"]);
     exit;
 }
 
-if (strlen($password) < 6) {
+// Усиливаем требования к паролю: минимум 8 символов
+if (strlen($password) < 8) {
     http_response_code(400);
-    echo json_encode(["success" => false, "error" => "Password must be at least 6 characters long"]);
+    echo json_encode(["success" => false, "error" => "Password must be at least 8 characters long"]);
+    exit;
+}
+
+// Проверка сложности пароля (хотя бы одна цифра и одна буква)
+if (!preg_match('/[A-Za-z]/', $password) || !preg_match('/[0-9]/', $password)) {
+    http_response_code(400);
+    echo json_encode(["success" => false, "error" => "Password must contain at least one letter and one number"]);
+    exit;
+}
+
+// Валидация имени и фамилии
+$maxNameLength = 100;
+if (strlen($firstName) > $maxNameLength || strlen($lastName) > $maxNameLength) {
+    http_response_code(400);
+    echo json_encode(["success" => false, "error" => "Name is too long"]);
+    exit;
+}
+
+if (!preg_match('/^[a-zA-Zа-яА-ЯёЁ\s\-\'\p{L}]+$/u', $firstName) || !preg_match('/^[a-zA-Zа-яА-ЯёЁ\s\-\'\p{L}]+$/u', $lastName)) {
+    http_response_code(400);
+    echo json_encode(["success" => false, "error" => "Name contains invalid characters"]);
     exit;
 }
 
@@ -50,36 +78,39 @@ try {
     $stmt = $pdo->prepare("SELECT id FROM users WHERE email = :email OR phone = :phone");
     $stmt->execute([":email" => $email, ":phone" => $phone]);
     if ($stmt->fetch()) {
-        http_response_code(409); // Conflict
+        logError("Registration attempt for existing user: " . sanitizeString($email));
+        http_response_code(409);
         echo json_encode(["success" => false, "error" => "User already exists"]);
         exit;
     }
 } catch (Exception $e) {
+    logError("Check user error: " . $e->getMessage());
     http_response_code(500);
     echo json_encode(["success" => false, "error" => "Check user error"]);
     exit;
 }
 
 // --- ХЭШИРОВАНИЕ ПАРОЛЯ ---
-$passwordHash = password_hash($password, PASSWORD_BCRYPT);
+$passwordHash = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
 
 // --- СОХРАНЕНИЕ В БАЗУ ---
 try {
     $stmt = $pdo->prepare("
-        INSERT INTO users (first_name, last_name, email, phone, password_hash, position, network, created_at)
-        VALUES (:first_name, :last_name, :email, :phone, :password_hash, :position, :network, NOW())
+        INSERT INTO users (first_name, last_name, email, phone, password_hash, position, network, created_at, role)
+        VALUES (:first_name, :last_name, :email, :phone, :password_hash, :position, :network, NOW(), 'user')
     ");
     $stmt->execute([
-        ":first_name"    => $firstName,
-        ":last_name"     => $lastName,
-        ":email"         => $email,
-        ":phone"         => $phone,
+        ":first_name"    => sanitizeString($firstName),
+        ":last_name"     => sanitizeString($lastName),
+        ":email"         => sanitizeString($email),
+        ":phone"         => sanitizeString($phone),
         ":password_hash" => $passwordHash,
-        ":position"      => $position,
-        ":network"       => $network
+        ":position"      => sanitizeString($position),
+        ":network"       => sanitizeString($network)
     ]);
     $userId = $pdo->lastInsertId();
 } catch (Exception $e) {
+    logError("Insert user error: " . $e->getMessage());
     http_response_code(500);
     echo json_encode(["success" => false, "error" => "Insert user error"]);
     exit;
@@ -87,15 +118,7 @@ try {
 
 // --- СОЗДАНИЕ СЕССИИ ---
 try {
-    $secure = false;
-    $randomBytes = openssl_random_pseudo_bytes(32, $secure);
-    if ($randomBytes === false || !$secure) {
-        // Обработка ошибки генерации случайных байтов
-        http_response_code(500);
-        echo json_encode(["success" => false, "error" => "Failed to generate secure token"]);
-        exit;
-}
-$token = bin2hex($randomBytes);
+    $token = generate_secure_token(32);
     $expires_at = date("Y-m-d H:i:s", strtotime("+1 day"));
 
     $stmt = $pdo->prepare("
@@ -110,6 +133,7 @@ $token = bin2hex($randomBytes);
         ":expires" => $expires_at
     ]);
 } catch (Exception $e) {
+    logError("Create session error: " . $e->getMessage());
     http_response_code(500);
     echo json_encode(["success" => false, "error" => "Create session error"]);
     exit;
@@ -127,7 +151,10 @@ echo json_encode([
         "phone"     => $phone,
         "email"     => $email,
         "position"  => $position,
-        "network"   => $network
+        "network"   => $network,
+        "role"      => "user"
     ]
 ], JSON_UNESCAPED_UNICODE);
+
+logError("New user registered: " . sanitizeString($email), 'INFO');
 ?>
