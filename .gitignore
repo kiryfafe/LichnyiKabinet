@@ -1,33 +1,57 @@
-```
-# Environment files
-.env
-.env.local
-*.env.*
-
-# Dependencies
-vendor/
-
-# Logs
+```gitignore
+# Logs and temp files
 *.log
-
-# Editor/IDE
-.vscode/
-.idea/
-*.swp
-*.swo
 *.tmp
 
-# OS
-.DS_Store
-Thumbs.db
+# Environment
+.env
+.env.local
+.env.*
 
-# PHP specific
-*.php~
-phpunit.xml.dist
+# Editors
+.vscode/
+.idea/
 
-# Cache and build artifacts
-.cache/
-build/
+# Dependencies
+node_modules/
+vendor/
+
+# Build artifacts
 dist/
+build/
+target/
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.a
+*.out
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+*.tmp
+
+# PHP
 *.phar
+
+# Original rules preserved
+*.log
 ```
