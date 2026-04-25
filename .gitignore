@@ -1,1 +1,55 @@
-Nothing should be ignored in this case, as the only modified file is a JavaScript source file (.js) which is legitimate source code that should be tracked in version control. No build artifacts, dependencies, or temporary files are present in the changes.
+```php
+# Environment variables
+.env
+.env.local
+.env.*
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+
+# Cache directories
+.cache/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Build outputs
+build/
+dist/
+*.out
+*.exe
+*.dll
+*.so
+*.a
+*.o
+*.obj
+
+# Dependencies
+node_modules/
+vendor/
+composer.lock
+
+# IDE specific
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# OS specific
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Backup files
+*~
+*.bak
+*.backup
+```
