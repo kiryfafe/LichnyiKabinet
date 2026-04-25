@@ -1,46 +1,24 @@
 <?php
 require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/auth_middleware.php';
+
 header("Content-Type: application/json; charset=utf-8");
 
-try {
-    $pdo = createPdoUtf8();
-} catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode(["success" => false, "error" => "DB connection error"]);
+// Rate limiting
+if (!checkRateLimit('restaurants', 60, 60)) {
     exit;
 }
 
-// ==================== ПРОВЕРКА ТОКЕНА ====================
-$headers = getallheaders();
-if (!isset($headers["Authorization"])) {
-    http_response_code(401);
-    echo json_encode(["success" => false, "error" => "Missing token"]);
-    exit;
-}
-list($type, $token) = explode(" ", $headers["Authorization"], 2);
-if (strtolower($type) !== "bearer" || !$token) {
-    http_response_code(401);
-    echo json_encode(["success" => false, "error" => "Invalid token"]);
-    exit;
-}
-
-$stmt = $pdo->prepare("SELECT u.* FROM user_sessions s 
-                       JOIN users u ON u.id = s.user_id
-                       WHERE s.token = :token AND s.expires_at > NOW()
-                       LIMIT 1");
-$stmt->execute([":token" => $token]);
-$user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-if (!$user) {
-    http_response_code(401);
-    echo json_encode(["success" => false, "error" => "Invalid or expired token"]);
+$user = authenticateUser();
+if ($user === null) {
     exit;
 }
 
 // ==================== ЗАГРУЗКА ЗАВЕДЕНИЙ ИЗ PYRUS ====================
 try {
-    $register = pyrusFetchRegister(1310341);
+    $register = pyrusFetchRegister(PYRUS_RESTAURANTS_FORM_ID);
 } catch (Exception $e) {
+    logError("Pyrus fetch error: " . $e->getMessage());
     http_response_code(500);
     echo json_encode(["success" => false, "error" => "Pyrus fetch error: " . $e->getMessage()]);
     exit;
