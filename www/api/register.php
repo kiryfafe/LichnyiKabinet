@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/logger.php';
 require_once __DIR__ . '/auth_middleware.php';
 
 header("Content-Type: application/json; charset=utf-8");
@@ -12,7 +13,7 @@ if (!checkRateLimit('register', 5, 60)) {
 try {
     $pdo = createPdoUtf8();
 } catch (Exception $e) {
-    logError("DB connection error: " . $e->getMessage());
+    Logger::error("DB connection error", ['error' => $e->getMessage()]);
     http_response_code(500);
     echo json_encode(["success" => false, "error" => "DB connection error"]);
     exit;
@@ -78,13 +79,13 @@ try {
     $stmt = $pdo->prepare("SELECT id FROM users WHERE email = :email OR phone = :phone");
     $stmt->execute([":email" => $email, ":phone" => $phone]);
     if ($stmt->fetch()) {
-        logError("Registration attempt for existing user: " . sanitizeString($email));
+        Logger::security("Registration attempt for existing user", ['email' => sanitizeString($email)]);
         http_response_code(409);
         echo json_encode(["success" => false, "error" => "User already exists"]);
         exit;
     }
 } catch (Exception $e) {
-    logError("Check user error: " . $e->getMessage());
+    Logger::error("Check user error", ['error' => $e->getMessage()]);
     http_response_code(500);
     echo json_encode(["success" => false, "error" => "Check user error"]);
     exit;
@@ -110,7 +111,7 @@ try {
     ]);
     $userId = $pdo->lastInsertId();
 } catch (Exception $e) {
-    logError("Insert user error: " . $e->getMessage());
+    Logger::error("Insert user error", ['error' => $e->getMessage()]);
     http_response_code(500);
     echo json_encode(["success" => false, "error" => "Insert user error"]);
     exit;
@@ -133,7 +134,7 @@ try {
         ":expires" => $expires_at
     ]);
 } catch (Exception $e) {
-    logError("Create session error: " . $e->getMessage());
+    Logger::error("Create session error", ['error' => $e->getMessage()]);
     http_response_code(500);
     echo json_encode(["success" => false, "error" => "Create session error"]);
     exit;
@@ -156,5 +157,5 @@ echo json_encode([
     ]
 ], JSON_UNESCAPED_UNICODE);
 
-logError("New user registered: " . sanitizeString($email), 'INFO');
+Logger::info("New user registered", ['email' => sanitizeString($email), 'user_id' => $userId]);
 ?>
