@@ -22,19 +22,22 @@ async function tryRegister() {
 
     if (!firstName || !lastName || !email || !phone || !password) {
         errorMsg.textContent = "Заполните все обязательные поля.";
-        errorMsg.style.display = "block";
+        errorMsg.classList.add("show");
+        successMsg.classList.remove("show");
         return;
     }
 
     if (!email.includes('@')) {
         errorMsg.textContent = "Некорректный email";
-        errorMsg.style.display = "block";
+        errorMsg.classList.add("show");
+        successMsg.classList.remove("show");
         return;
     }
 
     if (password.length < 6) {
         errorMsg.textContent = "Пароль должен быть не менее 6 символов";
-        errorMsg.style.display = "block";
+        errorMsg.classList.add("show");
+        successMsg.classList.remove("show");
         return;
     }
 
@@ -50,20 +53,20 @@ async function tryRegister() {
     };
 
     // Скрываем предыдущие сообщения
-    successMsg.style.display = "none";
-    errorMsg.style.display = "none";
+    successMsg.classList.remove("show");
+    errorMsg.classList.remove("show");
 
     const ok = await Auth.register(data);
 
     if (ok) {
-        successMsg.style.display = "block";
-        errorMsg.style.display = "none";
+        successMsg.classList.add("show");
+        errorMsg.classList.remove("show");
 
         // сразу редиректим в кабинет
         setTimeout(() => window.location.href = "../index.html", 1000);
     } else {
-        successMsg.style.display = "none";
-        errorMsg.style.display = "block";
+        successMsg.classList.remove("show");
+        errorMsg.classList.add("show");
         errorMsg.textContent = "Ошибка при регистрации. Проверьте данные или попробуйте позже."; // Более общее сообщение
     }
 }
