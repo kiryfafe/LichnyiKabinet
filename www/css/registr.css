@@ -1,0 +1,78 @@
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: #121212;
+  color: white;
+}
+
+.register-container {
+  max-width: 400px;
+  width: 100%;
+  padding: 20px;
+  background: #1e1e1e;
+  border-radius: 10px;
+}
+
+.register-container h2 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.register-container input,
+.register-container textarea {
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 10px;
+  border-radius: 6px;
+  border: none;
+  background: #333;
+  color: white;
+}
+
+.register-container textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.msg-success {
+  color: #2ecc71;
+  text-align: center;
+  margin-top: 10px;
+  display: none;
+}
+
+.msg-error {
+  color: #e74c3c;
+  text-align: center;
+  margin-top: 10px;
+  display: none;
+}
+
+.msg-success,
+.msg-error {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.msg-success.show,
+.msg-error.show {
+  opacity: 1;
+}
+
+.login-link {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.login-link a {
+  color: #d20000;
+}
+
+.register-container input:focus,
+.register-container textarea:focus {
+  outline: none;
+  border: 1px solid #d20000;
+  background: #2a2a2a;
+}
