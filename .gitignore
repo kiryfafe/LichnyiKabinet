@@ -1,5 +1,5 @@
-```php
-# Environment variables
+```
+# Environment
 .env
 .env.local
 .env.*
@@ -7,49 +7,87 @@
 # Logs
 *.log
 
-# Temporary files
-*.tmp
-*.temp
-*.bak
-*.swp
+# Dependencies
+node_modules/
 
-# Cache directories
-.cache/
+# Build artifacts
+dist/
+build/
+target/
+
+# Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+*.py.class
+venv/
+.venv/
+.egg-info/
 
-# Build outputs
-build/
-dist/
-*.out
-*.exe
-*.dll
-*.so
-*.a
+# Java
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+*.hprof
+hs_err_pid*
+
+# C/C++
 *.o
 *.obj
+*.so
+*.a
+*.lib
+*.dll
+*.dylib
+*.exe
+*.out
 
-# Dependencies
-node_modules/
-vendor/
-composer.lock
+# Go
+*.exe
+*.test
+*.prof
 
-# IDE specific
+# Editors
 .vscode/
 .idea/
-*.iml
-*.ipr
-*.iws
+*.swp
+*.swo
 
-# OS specific
+# OS
 .DS_Store
 Thumbs.db
-desktop.ini
 
-# Backup files
-*~
-*.bak
-*.backup
+# Testing
+.coverage
+htmlcov/
+coverage/
+.pytest_cache/
+.mypy_cache/
+
+# Compressed
+*.zip
+*.gz
+*.tar
+*.tgz
+*.bz2
+*.xz
+*.7z
+*.rar
+*.zst
+*.lz4
+*.lzh
+*.cab
+*.arj
+*.rpm
+*.deb
+*.Z
+*.lz
+*.lzo
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.tar.zst
 ```

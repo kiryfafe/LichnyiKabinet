@@ -41,7 +41,7 @@ function sanitizeString($data) {
  * @return bool true если запрос разрешён, false если превышен лимит
  */
 function checkRateLimit($action = 'api', $limit = 30, $window = 60) {
-    $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+    $ip = isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : 'unknown';
     $key = "rate_limit_{$action}_{$ip}";
     
     $tmpDir = sys_get_temp_dir() . '/lk_rate_limit';
