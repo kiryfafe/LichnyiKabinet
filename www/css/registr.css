@@ -24,11 +24,13 @@ body {
 .register-container textarea {
   width: 100%;
   margin-bottom: 10px;
-  padding: 10px;
-  border-radius: 6px;
-  border: none;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid #333;
   background: #333;
   color: white;
+  font-size: 16px;
+  transition: border-color 0.3s ease, background-color 0.3s ease, outline 0.3s ease;
 }
 
 .register-container textarea {
@@ -69,6 +71,8 @@ body {
 .register-container input:focus,
 .register-container textarea:focus {
   outline: none;
-  border: 1px solid #d20000;
+  border-color: #d20000;
+  outline: 2px solid #d20000;
+  outline-offset: 2px;
   background: #2a2a2a;
 }
