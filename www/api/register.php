@@ -166,8 +166,32 @@ try {
     exit;
 }
 
+// --- СОЗДАНИЕ ЗАДАЧИ В PYRUS (если указаны рестораны) ---
+$pyrusTaskCreated = false;
+$pyrusTaskError = null;
+if (!empty($network)) {
+    try {
+        $userData = [
+            'first_name' => $firstName,
+            'last_name'  => $lastName,
+            'phone'      => $phone,
+            'email'      => $email,
+            'position'   => $position,
+            'network'    => $network
+        ];
+        
+        $pyrusResult = pyrusCreateRegistrationTask($userData);
+        $pyrusTaskCreated = true;
+        Logger::info("Pyrus task created", ['user_id' => $userId, 'task_data' => $pyrusResult]);
+    } catch (Exception $e) {
+        $pyrusTaskError = $e->getMessage();
+        Logger::error("Failed to create Pyrus task", ['user_id' => $userId, 'error' => $e->getMessage()]);
+        // Не прерываем регистрацию, только логируем ошибку
+    }
+}
+
 // --- ВОЗВРАТ ДАННЫХ ---
-echo json_encode([
+$responseData = [
     "success" => true,
     "token"   => $token,
     "user"    => [
@@ -181,7 +205,17 @@ echo json_encode([
         "network"   => $network,
         "role"      => "user"
     ]
-], JSON_UNESCAPED_UNICODE);
+];
+
+// Добавляем информацию о задаче Pyrus в ответ
+if (!empty($network)) {
+    $responseData["pyrus_task"] = [
+        "created" => $pyrusTaskCreated,
+        "error" => $pyrusTaskError
+    ];
+}
+
+echo json_encode($responseData, JSON_UNESCAPED_UNICODE);
 
 Logger::info("New user registered", ['email' => sanitizeString($email), 'user_id' => $userId]);
 ?>
