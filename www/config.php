@@ -231,7 +231,9 @@ function pyrusCreateRegistrationTask(array $userData)
     }
     
     // Формируем заголовок задачи
-    $fullName = trim(($userData['first_name'] ?? '') . ' ' . ($userData['last_name'] ?? ''));
+    $firstName = isset($userData['first_name']) ? trim($userData['first_name']) : '';
+    $lastName = isset($userData['last_name']) ? trim($userData['last_name']) : '';
+    $fullName = trim($firstName . ' ' . $lastName);
     $title = $fullName !== '' ? 'Регистрация: ' . $fullName : 'Новая регистрация';
     
     // Создаем задачу через API Pyrus

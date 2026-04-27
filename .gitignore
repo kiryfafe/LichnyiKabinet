@@ -4,30 +4,69 @@
 .env.local
 .env.*
 
-# Logs and temporary files
+# Logs
 *.log
+
+# Temporary files
 *.tmp
+*.swp
+
+# OS generated files
+.DS_Store
+Thumbs.db
 
 # Editor/IDE files
 .vscode/
 .idea/
-*.swp
-*.swo
 
-# Dependencies and build artifacts
-node_modules/
+# Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+.Python
+*.so
+.coverage
+htmlcov/
+.coverage.*
+.python-version
+
+# Build artifacts
 dist/
 build/
-target/
-.venv/
+*.egg-info/
+
+# Dependencies
+node_modules/
 venv/
-.envrc
-.env.example
-.env.test
-.env.production
-.env.development
+.venv/
+.mypy_cache/
+.pytest_cache/
+.tox/
+.coverage/
+htmlcov/
+
+# Compression files
+*.zip
+*.gz
+*.tar
+*.tgz
+*.bz2
+*.xz
+*.7z
+*.rar
+*.zst
+*.lz4
+*.lzh
+*.cab
+*.arj
+*.rpm
+*.deb
+*.Z
+*.lz
+*.lzo
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.tar.zst
 ```
