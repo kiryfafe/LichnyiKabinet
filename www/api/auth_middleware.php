@@ -204,14 +204,4 @@ function generate_secure_token($length = 32) {
  * @param string $message
  * @param string $level
  */
-function logError($message, $level = 'ERROR') {
-    if ($level === 'INFO') {
-        Logger::info($message);
-    } elseif ($level === 'WARNING') {
-        Logger::warning($message);
-    } elseif ($level === 'SECURITY') {
-        Logger::security($message);
-    } else {
-        Logger::error($message);
-    }
-}
+// Функция logError удалена, так как уже определена в logger.php для предотвращения конфликта "Cannot redeclare"
