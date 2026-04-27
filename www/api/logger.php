@@ -227,3 +227,4 @@ set_exception_handler(function($exception) {
     // Передаем обработку дальше стандартному обработчику
     throw $exception;
 });
+?>

@@ -205,3 +205,4 @@ function generate_secure_token($length = 32) {
  * @param string $level
  */
 // Функция logError удалена, так как уже определена в logger.php для предотвращения конфликта "Cannot redeclare"
+?>

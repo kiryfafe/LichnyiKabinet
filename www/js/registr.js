@@ -34,8 +34,8 @@ async function tryRegister() {
         return;
     }
 
-    if (password.length < 6) {
-        errorMsg.textContent = "Пароль должен быть не менее 6 символов";
+    if (password.length < 8) {
+        errorMsg.textContent = "Пароль должен быть не менее 8 символов";
         errorMsg.classList.add("show");
         successMsg.classList.remove("show");
         return;

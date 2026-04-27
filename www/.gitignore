@@ -59,3 +59,64 @@ sessions/
 # Deployment configs with secrets
 deploy.yml
 docker-compose.override.yml
+# Environment variables with sensitive data
+.env
+.env.local
+.env.*.local
+*.env
+
+# Logs
+*.log
+logs/
+error.log
+security.log
+audit.log
+
+# Temporary files
+tmp/
+temp/
+cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database dumps and backups (CRITICAL: prevent DB schema exposure)
+*.sql
+*.sql.dump
+*.sql.gz
+*.sql.bz2
+backups/
+db_dumps/
+database_backups/
+*.sqlite
+*.sqlite3
+*.db
+
+# Composer
+vendor/
+
+# Node modules (if used in future)
+node_modules/
+
+# Rate limit storage
+rate_limit_cache/
+
+# Session files (if file-based sessions used)
+sessions/
+
+# SSL certificates
+*.pem
+*.key
+*.crt
+
+# Deployment configs with secrets
+deploy.yml
+docker-compose.override.yml
