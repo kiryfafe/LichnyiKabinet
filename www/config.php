@@ -35,6 +35,7 @@ $pyrus_security_key = isset($_ENV['PYRUS_SECURITY_KEY']) ? $_ENV['PYRUS_SECURITY
 // Pyrus Form IDs - вынесены в .env для гибкости
 $pyrus_tasks_form_id = isset($_ENV['PYRUS_TASKS_FORM_ID']) ? $_ENV['PYRUS_TASKS_FORM_ID'] : '1463678';
 $pyrus_restaurants_form_id = isset($_ENV['PYRUS_RESTAURANTS_FORM_ID']) ? $_ENV['PYRUS_RESTAURANTS_FORM_ID'] : '1310341';
+$pyrus_registration_form_id = isset($_ENV['PYRUS_REGISTRATION_FORM_ID']) ? $_ENV['PYRUS_REGISTRATION_FORM_ID'] : '2346974';
 
 if (!$db_host || !$db_name || !$db_user || $db_pass === null || !$grafana_url || !$grafana_token) {
     // Более безопасно, чем просто ошибка, но в реальном приложении нужна логика обработки
@@ -54,6 +55,7 @@ define('PYRUS_LOGIN', $pyrus_login);
 define('PYRUS_SECURITY_KEY', $pyrus_security_key);
 define('PYRUS_TASKS_FORM_ID', $pyrus_tasks_form_id);
 define('PYRUS_RESTAURANTS_FORM_ID', $pyrus_restaurants_form_id);
+define('PYRUS_REGISTRATION_FORM_ID', $pyrus_registration_form_id);
 
 /**
  * Создает PDO с явной установкой UTF-8/utf8mb4, чтобы кириллица не искажалась.
@@ -189,6 +191,57 @@ function pyrusRowToAssoc(array $row, array $columnMap)
         $assoc[$name] = $value;
     }
     return $assoc;
+}
+
+/**
+ * Создает задачу в Pyrus для новой формы регистрации (форма 2346974).
+ * @param array $userData Данные пользователя из БД
+ * @return array Ответ от API Pyrus
+ */
+function pyrusCreateRegistrationTask(array $userData)
+{
+    // Получаем структуру формы для маппинга колонок
+    $register = pyrusFetchRegister(PYRUS_REGISTRATION_FORM_ID);
+    $columnMap = pyrusBuildColumnMap($register);
+    
+    // Формируем ячейки задачи согласно маппингу: форма - БД
+    // Имя - first_name, Фамилия - last_name, Телефон - phone, 
+    // Эл. почта - email, Должность - position, Заведения - network
+    $cells = [];
+    
+    $fieldMapping = [
+        'Имя' => 'first_name',
+        'Фамилия' => 'last_name',
+        'Телефон' => 'phone',
+        'Эл. почта' => 'email',
+        'Должность' => 'position',
+        'Заведения' => 'network'
+    ];
+    
+    foreach ($fieldMapping as $columnName => $dbField) {
+        $colId = isset($columnMap[$columnName]) ? $columnMap[$columnName] : null;
+        $value = isset($userData[$dbField]) ? trim($userData[$dbField]) : '';
+        
+        if ($colId !== null && $value !== '') {
+            $cells[] = [
+                'column_id' => $colId,
+                'value' => $value
+            ];
+        }
+    }
+    
+    // Формируем заголовок задачи
+    $fullName = trim(($userData['first_name'] ?? '') . ' ' . ($userData['last_name'] ?? ''));
+    $title = $fullName !== '' ? 'Регистрация: ' . $fullName : 'Новая регистрация';
+    
+    // Создаем задачу через API Pyrus
+    $taskData = [
+        'form_id' => PYRUS_REGISTRATION_FORM_ID,
+        'title' => $title,
+        'cells' => $cells
+    ];
+    
+    return pyrusRequest('POST', '/tasks', $taskData);
 }
 
 // Явно устанавливаем внутреннюю кодировку PHP, если доступно расширение mbstring.
