@@ -23,7 +23,7 @@ function authenticateUser() {
 
     $headers = getallheaders();
     if (!isset($headers["Authorization"])) {
-        Logger::security("Missing Authorization header", ['ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown']);
+        Logger::security("Missing Authorization header", ['ip' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : 'unknown']);
         http_response_code(401);
         echo json_encode(["success" => false, "error" => "Missing token"]);
         return null;
@@ -31,7 +31,7 @@ function authenticateUser() {
 
     list($type, $token) = explode(" ", $headers["Authorization"], 2);
     if (strtolower($type) !== "bearer" || !$token) {
-        Logger::security("Invalid token format", ['ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown']);
+        Logger::security("Invalid token format", ['ip' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : 'unknown']);
         http_response_code(401);
         echo json_encode(["success" => false, "error" => "Invalid token format"]);
         return null;
@@ -47,8 +47,8 @@ function authenticateUser() {
 
     if (!$user) {
         Logger::security("Invalid or expired token attempt", [
-            'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
-            'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
+            'ip' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : 'unknown',
+            'user_agent' => isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : 'unknown'
         ]);
         http_response_code(401);
         echo json_encode(["success" => false, "error" => "Invalid or expired token"]);
@@ -102,7 +102,7 @@ function sanitizeString($data) {
  * @return bool true если запрос разрешён, false если превышен лимит
  */
 function checkRateLimit($action = 'api', $limit = 30, $window = 60) {
-    $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+    $ip = isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : 'unknown';
     $key = "rate_limit_{$action}_{$ip}";
     
     // Директория для хранения счётчиков rate limit

@@ -45,9 +45,9 @@ if ($method === "POST") {
         exit;
     }
     
-    $title   = sanitizeString(trim($input["title"] ?? ""));
-    $desc    = sanitizeString(trim($input["description"] ?? ""));
-    $est     = sanitizeString(trim($input["establishment"] ?? ""));
+    $title   = sanitizeString(isset($input["title"]) ? trim($input["title"]) : "");
+    $desc    = sanitizeString(isset($input["description"]) ? trim($input["description"]) : "");
+    $est     = sanitizeString(isset($input["establishment"]) ? trim($input["establishment"]) : "");
 
     try {
         $pdo = createPdoUtf8();

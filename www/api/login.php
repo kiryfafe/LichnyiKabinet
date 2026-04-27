@@ -50,7 +50,7 @@ $identifier = isset($input["identifier"]) ? trim($input["identifier"]) : "";
 $password   = isset($input["password"]) ? trim($input["password"]) : "";
 
 if ($identifier === "" || $password === "") {
-    Logger::security("Login attempt with missing credentials", ['ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown']);
+    Logger::security("Login attempt with missing credentials", ['ip' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : 'unknown']);
     http_response_code(400);
     echo json_encode(array("success" => false, "error" => "Missing credentials"));
     exit;
@@ -75,7 +75,7 @@ try {
 if (!$user) {
     Logger::security("Login attempt for non-existent user", [
         'identifier' => sanitizeString($identifier),
-        'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown'
+        'ip' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : 'unknown'
     ]);
     http_response_code(401);
     echo json_encode(array("success" => false, "error" => "User not found"));
@@ -86,7 +86,7 @@ if (!$user) {
 if (!password_verify($password, $user["password_hash"])) {
     Logger::security("Failed login attempt (wrong password)", [
         'identifier' => sanitizeString($identifier),
-        'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+        'ip' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : 'unknown',
         'user_id' => $user['id']
     ]);
     http_response_code(401);
@@ -99,7 +99,7 @@ if (isset($user['is_active']) && $user['is_active'] == 0) {
     Logger::security("Login attempt for inactive user", [
         'identifier' => sanitizeString($identifier),
         'user_id' => $user['id'],
-        'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown'
+        'ip' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : 'unknown'
     ]);
     http_response_code(403);
     echo json_encode(array("success" => false, "error" => "Account is deactivated"));
@@ -151,6 +151,6 @@ echo json_encode(array(
 Logger::info("Successful login", [
     'user_id' => $user['id'],
     'identifier' => sanitizeString($identifier),
-    'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown'
+    'ip' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : 'unknown'
 ]);
 ?>

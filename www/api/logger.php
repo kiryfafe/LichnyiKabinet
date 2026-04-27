@@ -112,7 +112,7 @@ class Logger {
         // Получаем информацию о вызове
         $backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3);
         $caller = isset($backtrace[2]) ? 
-            basename($backtrace[2]['file'] ?? 'unknown') . ':' . ($backtrace[2]['line'] ?? '?') : 
+            basename(isset($backtrace[2]['file']) ? $backtrace[2]['file'] : 'unknown') . ':' . (isset($backtrace[2]['line']) ? $backtrace[2]['line'] : '?') : 
             'unknown';
         
         // Форматируем сообщение
@@ -178,8 +178,8 @@ class Logger {
     public static function audit($action, $userId, $details = []) {
         self::log(self::LEVEL_SECURITY, "AUDIT: {$action}", array_merge([
             'user_id' => $userId,
-            'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
-            'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
+            'ip' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : 'unknown',
+            'user_agent' => isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : 'unknown'
         ], $details));
     }
 }
