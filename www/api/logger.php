@@ -22,6 +22,7 @@ class Logger {
     private static $logDir = null;
     private static $initialized = false;
     private static $minLevel = self::LEVEL_INFO;
+    private static $securityLogFile = null;
     
     private static $levelPriority = [
         self::LEVEL_DEBUG => 0,
