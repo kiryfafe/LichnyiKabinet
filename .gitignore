@@ -1,19 +1,20 @@
-# Examples 1:
-(empty)
-
-# Example 2:
+```
 # Compiled and build artifacts
 *.pyc
 __pycache__/
 *.o
 *.obj
-dist/
-build/
-target/
+*.so
+*.dll
+*.exe
+*.class
+*.out
 
 # Dependencies
-.venv/
+vendor/
+node_modules/
 venv/
+.venv/
 .env
 .env.local
 .env.*
@@ -22,7 +23,14 @@ venv/
 *.log
 *.tmp
 *.swp
+*.swo
 
 # Editors
 .vscode/
 .idea/
+
+# Build directories
+dist/
+build/
+target/
+```
