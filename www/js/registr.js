@@ -62,8 +62,19 @@ async function tryRegister() {
         successMsg.classList.add("show");
         errorMsg.classList.remove("show");
 
-        // сразу редиректим в кабинет
-        setTimeout(() => window.location.href = "../index.html", 1000);
+        // Небольшая задержка перед редиректом, чтобы убедиться, что данные сохранились
+        setTimeout(() => {
+            // Принудительно проверяем, что токен сохранён
+            const token = Auth.getToken();
+            const user = Auth.getUser();
+            if (!token || !user) {
+                console.error("Token or user data not saved after registration");
+                errorMsg.textContent = "Ошибка сохранения сессии. Попробуйте войти снова.";
+                errorMsg.classList.add("show");
+                return;
+            }
+            window.location.href = "../index.html";
+        }, 500);
     } else {
         successMsg.classList.remove("show");
         errorMsg.classList.add("show");

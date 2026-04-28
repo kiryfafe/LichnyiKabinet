@@ -1,21 +1,29 @@
-```
+# Compiled and build artifacts
+*.pyc
+__pycache__/
+*.o
+*.obj
+dist/
+build/
+
 # Dependencies
-vendor/
+.venv/
+venv/
+node_modules/
 
 # Logs and temp files
 *.log
 *.tmp
+*.swp
 
 # Environment
 .env
 .env.local
-*.env.*
+.env.*
 
-# Sessions and user data
-data/sessions.json
-data/users.json
+# Editors
+.vscode/
+.idea/
 
-# OS generated files
-.DS_Store
-Thumbs.db
-```
+# Original rules preserved
+*.log

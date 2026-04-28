@@ -41,12 +41,24 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("user-fullname").textContent = fullNameText || "Имя Фамилия";
   document.getElementById("user-phone").textContent = user.phone || "";
 
+  // Проверка токена перед загрузкой данных
+  const token = Auth.getToken();
+  if (!token) {
+    console.error("No authentication token found, redirecting to login");
+    window.location.href = "pages/login.html";
+    return;
+  }
+
   /* ==================== ДРОПДАУН И МОДАЛКА ЗАВЕДЕНИЙ ==================== */
   try {
     const dropdown = document.getElementById("main-dropdown");
     const estList = document.querySelector(".establishment-list");
     const resp = await API.getPyrusRestaurants();
-    if (!resp.success) throw new Error("Failed to load restaurants");
+    
+    // Проверяем, успешен ли ответ (может быть 401 если токен протух)
+    if (!resp || !resp.success) {
+      throw new Error(resp?.error || "Failed to load restaurants");
+    }
 
     const restaurants = resp.restaurants || [];
     const filterSelect = document.getElementById("filter-establishment");
@@ -87,8 +99,20 @@ document.addEventListener("DOMContentLoaded", async () => {
       const tbody = document.getElementById("requests-table-body");
       if (tbody) tbody.innerHTML = "";
 
+      // Проверяем токен перед запросом
+      const token = Auth.getToken();
+      if (!token) {
+        console.warn("No token available for loading tasks, redirecting to login");
+        window.location.href = "pages/login.html";
+        return;
+      }
+
       const res = await API.getPyrusTasks(selectedRestaurant);
-      if (!res.success) throw new Error("Failed to load tasks");
+      
+      // Проверяем успешность ответа
+      if (!res || !res.success) {
+        throw new Error(res?.error || "Failed to load tasks");
+      }
 
       const list = res.tasks || [];
       list.forEach(task => {
@@ -110,7 +134,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
     } catch (e) {
       console.error("Ошибка загрузки задач:", e);
-      alert("Ошибка загрузки задач: " + e.message);
+      // Не показываем alert для ошибок авторизации, просто редиректим
+      if (e.message && e.message.includes("Unauthorized")) {
+        window.location.href = "pages/login.html";
+      } else {
+        alert("Ошибка загрузки задач: " + e.message);
+      }
     }
   }
 
