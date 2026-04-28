@@ -21,15 +21,36 @@ function authenticateUser() {
         return null;
     }
 
-    $headers = getallheaders();
-    if (!isset($headers["Authorization"])) {
+    // Поддержка разных способов получения заголовков
+    $headers = [];
+    if (function_exists('getallheaders')) {
+        $headers = getallheaders();
+    } else {
+        // Fallback для nginx/FastCGI
+        foreach ($_SERVER as $name => $value) {
+            if (substr($name, 0, 5) == 'HTTP_') {
+                $headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))))] = $value;
+            }
+        }
+    }
+    
+    // Проверяем Authorization в разных регистрах
+    $authHeader = null;
+    foreach ($headers as $key => $value) {
+        if (strtolower($key) === 'authorization') {
+            $authHeader = $value;
+            break;
+        }
+    }
+    
+    if (!$authHeader) {
         Logger::security("Missing Authorization header", ['ip' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : 'unknown']);
         http_response_code(401);
         echo json_encode(["success" => false, "error" => "Missing token"]);
         return null;
     }
 
-    list($type, $token) = explode(" ", $headers["Authorization"], 2);
+    list($type, $token) = explode(" ", $authHeader, 2);
     if (strtolower($type) !== "bearer" || !$token) {
         Logger::security("Invalid token format", ['ip' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : 'unknown']);
         http_response_code(401);
