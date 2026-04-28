@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>СМАСТЕР MiniApp</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="c-box">С</div><div class="master">МАСТЕР</div>
+  </div>
+</header>
+
+<!-- Выпадающие списки для Главной и Заявок -->
+<div class="dropdown-container" id="dropdown-container-home" style="display:none;">
+  <select id="dropdown-home"></select>
+</div>
+<div class="dropdown-container" id="dropdown-container-requests" style="display:none; top: 90px;">
+  <select id="dropdown-requests"></select>
+</div>
+
+<main>
+  <section id="home" class="active">
+    <button id="go-to-create-request" style="position: absolute; top: 130px; right: 20px;">Создать заявку</button>
+    <div class="info-block" id="home-info-block">
+      <!-- Внешняя информация сюда -->
+      Информационный блок на главной странице
+    </div>
+  </section>
+
+  <section id="requests">
+    <div class="requests-list" id="requests-list">
+      <!-- Список заявок из внешнего источника -->
+      Заявки будут здесь
+    </div>
+  </section>
+
+  <section id="invoices">
+    <table>
+      <thead>
+        <tr><th>Название предприятия</th><th>Счета предприятия</th></tr>
+      </thead>
+      <tbody id="invoices-body">
+        <!-- Данные счета -->
+      </tbody>
+    </table>
+  </section>
+
+  <section id="profile">
+    <div class="profile-header">
+      <div class="avatar" id="profile-avatar"></div>
+      <div class="profile-info">
+        <div id="profile-phone">+7 (XXX) XXX-XX-XX</div>
+        <div id="profile-name">Имя Фамилия</div>
+      </div>
+      <button class="edit-btn" id="edit-profile-btn">Редактировать</button>
+    </div>
+    <div class="dropdown-block">
+      <label for="establishments-dropdown">Заведения</label>
+      <select id="establishments-dropdown" style="width: 100%; padding: 8px; margin-top: 20px;"></select>
+    </div>
+    <button class="share-contact-btn" id="share-contact-btn" style="display:none;">Поделиться контактом</button>
+  </section>
+</main>
+
+<nav>
+  <button class="active" data-target="home">Главная</button>
+  <button data-target="requests">Заявки</button>
+  <button data-target="invoices">Счета</button>
+  <button data-target="profile">Профиль</button>
+</nav>
+
+<script src="scripts.js"></script>
+</body>
+</html>
