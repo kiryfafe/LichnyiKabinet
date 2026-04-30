@@ -1,0 +1,5 @@
+# Включаем обработку PHP в .html файлах
+AddType application/x-httpd-php .html
+
+# Устанавливаем кодировку UTF-8
+AddDefaultCharset UTF-8
