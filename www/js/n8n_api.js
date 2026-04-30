@@ -1,8 +1,18 @@
 // Конфигурация API для работы с n8n
 // Значения загружаются из HTML data-атрибутов, которые заполняются через PHP из .env
+
+// Проверяем, доступен ли proxy (для обхода CORS)
+const USE_PROXY = true; // Установите в false, если настроили CORS на сервере n8n
+
 const N8N_CONFIG = {
   // Базовый URL webhook (загружается из .env через config.php)
-  BASE_URL: window.N8N_WEBHOOK_URL || 'https://n8n.your-domain.com/webhook',
+  BASE_URL: window.N8N_WEBHOOK_URL || 'https://n8n.standartmaster.ru/webhook',
+  
+  // URL прокси для обхода CORS (если USE_PROXY = true)
+  PROXY_URL: '/api/n8n_proxy.php?endpoint=',
+  
+  // Использовать ли прокси
+  USE_PROXY: USE_PROXY,
   
   // Таймаут запросов (мс)
   TIMEOUT: 30000,
@@ -16,10 +26,14 @@ const N8N_API = {
    * Универсальный метод для запросов к n8n
    */
   async makeRequest(endpoint, options = {}) {
-    const url = `${N8N_CONFIG.BASE_URL}${endpoint}`;
+    // Формируем URL: через прокси или напрямую
+    const url = N8N_CONFIG.USE_PROXY 
+      ? `${N8N_CONFIG.PROXY_URL}${encodeURIComponent(endpoint)}`
+      : `${N8N_CONFIG.BASE_URL}${endpoint}`;
     
     if (N8N_CONFIG.DEBUG) {
       console.log(`[N8N_API] Request to ${url}`, options);
+      console.log(`[N8N_API] Using proxy: ${N8N_CONFIG.USE_PROXY}`);
     }
     
     try {
