@@ -32,10 +32,6 @@ $pyrus_token = isset($_ENV['PYRUS_TOKEN']) ? $_ENV['PYRUS_TOKEN'] : null;
 $pyrus_login = isset($_ENV['PYRUS_LOGIN']) ? $_ENV['PYRUS_LOGIN'] : null;
 $pyrus_security_key = isset($_ENV['PYRUS_SECURITY_KEY']) ? $_ENV['PYRUS_SECURITY_KEY'] : null;
 
-// N8N variables (optional for frontend)
-$webhook_url_env = isset($_ENV['WEBHOOK_URL']) ? $_ENV['WEBHOOK_URL'] : '';
-$n8n_cors_origin_env = isset($_ENV['N8N_CORS_ORIGIN']) ? $_ENV['N8N_CORS_ORIGIN'] : '';
-
 // Pyrus Form IDs - вынесены в .env для гибкости
 $pyrus_tasks_form_id = isset($_ENV['PYRUS_TASKS_FORM_ID']) ? $_ENV['PYRUS_TASKS_FORM_ID'] : '1463678';
 $pyrus_restaurants_form_id = isset($_ENV['PYRUS_RESTAURANTS_FORM_ID']) ? $_ENV['PYRUS_RESTAURANTS_FORM_ID'] : '1310341';
@@ -45,12 +41,6 @@ if (!$db_host || !$db_name || !$db_user || $db_pass === null || !$grafana_url ||
     // Более безопасно, чем просто ошибка, но в реальном приложении нужна логика обработки
     http_response_code(500);
     die('Configuration error: Missing required environment variables.');
-}
-
-// N8N Webhook URL - не является обязательным для работы API, может быть пустым
-if (empty($webhook_url_env)) {
-    // Можно добавить предупреждение в лог, но не прерываем работу
-    error_log("Warning: WEBHOOK_URL is not set in .env");
 }
 
 // Определяем константы
@@ -66,14 +56,6 @@ define('PYRUS_SECURITY_KEY', $pyrus_security_key);
 define('PYRUS_TASKS_FORM_ID', $pyrus_tasks_form_id);
 define('PYRUS_RESTAURANTS_FORM_ID', $pyrus_restaurants_form_id);
 define('PYRUS_REGISTRATION_FORM_ID', $pyrus_registration_form_id);
-
-// N8N Webhook URL
-$webhook_url = isset($_ENV['WEBHOOK_URL']) ? $_ENV['WEBHOOK_URL'] : '';
-define('WEBHOOK_URL', $webhook_url);
-
-// N8N CORS Origin
-$n8n_cors_origin = isset($_ENV['N8N_CORS_ORIGIN']) ? $_ENV['N8N_CORS_ORIGIN'] : '';
-define('N8N_CORS_ORIGIN', $n8n_cors_origin);
 
 /**
  * Создает PDO с явной установкой UTF-8/utf8mb4, чтобы кириллица не искажалась.

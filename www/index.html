@@ -12,7 +12,6 @@
 </head>
 
 <body>
-<?php require_once __DIR__ . '/env_config.php'; ?>
   <!-- Приветственный экран -->
   <div id="welcome-screen">
     <img id="welcome-logo" src="assets/icons/Logo_Welcome.png" alt="Логотип приложения" />
@@ -136,8 +135,8 @@
   </div>
 
   <!-- Скрипты -->
+  <script defer src="js/api.js"></script>
   <script defer src="js/auth.js"></script>
-  <script defer src="js/n8n_api.js"></script>
-  <script defer src="js/app_n8n.js"></script>
+  <script defer src="js/app.js"></script>
 </body>
 </html>

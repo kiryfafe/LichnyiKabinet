@@ -13,25 +13,20 @@ if (window.Auth) {
       }
   
       try {
-        // Используем N8N_API вместо API
-        const res = await (window.N8N_API || window.API).login({ identifier, password });
+        const res = await API.loginUser({ identifier, password });
   
         if (!res || !res.success) {
           console.error("Login failed:", res?.error || "Unknown error");
           return false;
         }
   
-        // Для N8N_API данные в res.data, для API - напрямую в res
-        const user = res.data?.user || res.user;
-        const token = res.data?.token || res.token;
-  
-        if (!user || !token) {
+        if (!res.user || !res.token) {
           console.error("Login: missing user data or token");
           return false;
         }
   
-        localStorage.setItem(this.KEY_USER, JSON.stringify(user));
-        localStorage.setItem(this.KEY_TOKEN, token);
+        localStorage.setItem(this.KEY_USER, JSON.stringify(res.user));
+        localStorage.setItem(this.KEY_TOKEN, res.token);
         return true;
       } catch (e) {
         console.error("Ошибка авторизации:", e);
@@ -41,16 +36,11 @@ if (window.Auth) {
   
     async register(data) {
       // data = { first_name, last_name, phone, email, password, position, network }
-      // Используем N8N_API вместо API
-      const res = await (window.N8N_API || window.API).register(data);
+      const res = await API.registerUser(data);
   
       if (res && res.success) {
-        // Для N8N_API данные в res.data, для API - напрямую в res
-        const user = res.data?.user || res.user;
-        const token = res.data?.token || res.token;
-        
-        localStorage.setItem(this.KEY_USER, JSON.stringify(user));
-        localStorage.setItem(this.KEY_TOKEN, token);
+        localStorage.setItem(this.KEY_USER, JSON.stringify(res.user));
+        localStorage.setItem(this.KEY_TOKEN, res.token);
         return true;
       }
       return false;
