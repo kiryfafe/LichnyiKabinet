@@ -101,7 +101,7 @@ const N8N_API = {
    * @param {string} password - пароль
    */
   async login({ identifier, password }) {
-    return this.makeRequest('/login', {
+    return this.makeRequest('login', {
       method: 'POST',
       body: JSON.stringify({ identifier, password })
     });
@@ -112,7 +112,7 @@ const N8N_API = {
    * @param {Object} userData - данные пользователя
    */
   async register(userData) {
-    return this.makeRequest('/register', {
+    return this.makeRequest('register', {
       method: 'POST',
       body: JSON.stringify(userData)
     });
