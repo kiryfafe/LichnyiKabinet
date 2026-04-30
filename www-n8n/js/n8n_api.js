@@ -1,7 +1,8 @@
 // Конфигурация API для работы с n8n
+// Значения загружаются из HTML data-атрибутов, которые заполняются через PHP из .env
 const N8N_CONFIG = {
-  // Замените на URL вашего n8n инстанса
-  BASE_URL: 'https://n8n.your-domain.com/webhook',
+  // Базовый URL webhook (загружается из .env через config.php)
+  BASE_URL: window.N8N_WEBHOOK_URL || 'https://n8n.your-domain.com/webhook',
   
   // Таймаут запросов (мс)
   TIMEOUT: 30000,
