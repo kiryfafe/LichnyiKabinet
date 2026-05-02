@@ -4,10 +4,10 @@
  * Поддерживает разные уровни логирования и запись в файл
  * 
  * Использование:
- *   Logger::info('User logged in', ['user_id' => 123]);
- *   Logger::error('Database connection failed', ['error' => $e->getMessage()]);
- *   Logger::warning('Rate limit exceeded', ['ip' => $_SERVER['REMOTE_ADDR']]);
- *   Logger::security('Failed login attempt', ['identifier' => $email, 'ip' => $ip]);
+ *   Logger::info('User logged in', array('user_id' => 123));
+ *   Logger::error('Database connection failed', array('error' => $e->getMessage()));
+ *   Logger::warning('Rate limit exceeded', array('ip' => $_SERVER['REMOTE_ADDR']));
+ *   Logger::security('Failed login attempt', array('identifier' => $email, 'ip' => $ip));
  */
 
 class Logger {
@@ -21,17 +21,10 @@ class Logger {
     private static $logFile = null;
     private static $logDir = null;
     private static $initialized = false;
-    private static $minLevel = self::LEVEL_INFO;
+    private static $minLevel = null;
     private static $securityLogFile = null;
     
-    private static $levelPriority = [
-        self::LEVEL_DEBUG => 0,
-        self::LEVEL_INFO => 1,
-        self::LEVEL_WARNING => 2,
-        self::LEVEL_ERROR => 3,
-        self::LEVEL_CRITICAL => 4,
-        self::LEVEL_SECURITY => 5
-    ];
+    private static $levelPriority = null;
     
     /**
      * Инициализация системы логирования
@@ -40,6 +33,19 @@ class Logger {
         if (self::$initialized) {
             return;
         }
+        
+        // Инициализируем приоритеты уровней
+        self::$levelPriority = array(
+            self::LEVEL_DEBUG => 0,
+            self::LEVEL_INFO => 1,
+            self::LEVEL_WARNING => 2,
+            self::LEVEL_ERROR => 3,
+            self::LEVEL_CRITICAL => 4,
+            self::LEVEL_SECURITY => 5
+        );
+        
+        // Устанавливаем минимальный уровень по умолчанию
+        self::$minLevel = self::LEVEL_INFO;
         
         // Определяем директорию для логов
         $baseDir = dirname(__DIR__);
@@ -80,7 +86,7 @@ class Logger {
     /**
      * Основная функция логирования
      */
-    private static function log($level, $message, $context = []) {
+    private static function log($level, $message, $context = array()) {
         self::init();
         
         if (!self::shouldLog($level)) {
@@ -95,8 +101,8 @@ class Logger {
         $contextStr = '';
         if (!empty($context)) {
             // Маскируем чувствительные данные
-            $sensitiveKeys = ['password', 'pass', 'secret', 'token', 'key', 'auth'];
-            $safeContext = [];
+            $sensitiveKeys = array('password', 'pass', 'secret', 'token', 'key', 'auth');
+            $safeContext = array();
             foreach ($context as $key => $value) {
                 $isSensitive = false;
                 foreach ($sensitiveKeys as $sensitive) {
@@ -107,7 +113,8 @@ class Logger {
                 }
                 $safeContext[$key] = $isSensitive ? '***REDACTED***' : $value;
             }
-            $contextStr = ' ' . json_encode($safeContext, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+            // JSON_THROW_ON_ERROR доступен только с PHP 7.3, убираем для совместимости
+            $contextStr = ' ' . json_encode($safeContext, JSON_UNESCAPED_UNICODE);
         }
         
         // Получаем информацию о вызове
@@ -126,7 +133,7 @@ class Logger {
         @file_put_contents($targetFile, $logEntry, FILE_APPEND | LOCK_EX);
         
         // Для критических ошибок также пишем в error_log PHP
-        if (in_array($level, [self::LEVEL_CRITICAL, self::LEVEL_ERROR, self::LEVEL_SECURITY])) {
+        if (in_array($level, array(self::LEVEL_CRITICAL, self::LEVEL_ERROR, self::LEVEL_SECURITY))) {
             error_log($logEntry);
         }
     }
@@ -134,54 +141,57 @@ class Logger {
     /**
      * Логирование информационного сообщения
      */
-    public static function info($message, $context = []) {
+    public static function info($message, $context = array()) {
         self::log(self::LEVEL_INFO, $message, $context);
     }
     
     /**
      * Логирование предупреждения
      */
-    public static function warning($message, $context = []) {
+    public static function warning($message, $context = array()) {
         self::log(self::LEVEL_WARNING, $message, $context);
     }
     
     /**
      * Логирование ошибки
      */
-    public static function error($message, $context = []) {
+    public static function error($message, $context = array()) {
         self::log(self::LEVEL_ERROR, $message, $context);
     }
     
     /**
      * Логирование критической ошибки
      */
-    public static function critical($message, $context = []) {
+    public static function critical($message, $context = array()) {
         self::log(self::LEVEL_CRITICAL, $message, $context);
     }
     
     /**
      * Логирование события безопасности
      */
-    public static function security($message, $context = []) {
+    public static function security($message, $context = array()) {
         self::log(self::LEVEL_SECURITY, $message, $context);
     }
     
     /**
      * Логирование отладочной информации
      */
-    public static function debug($message, $context = []) {
+    public static function debug($message, $context = array()) {
         self::log(self::LEVEL_DEBUG, $message, $context);
     }
     
     /**
      * Логирование аудита (для compliance)
      */
-    public static function audit($action, $userId, $details = []) {
-        self::log(self::LEVEL_SECURITY, "AUDIT: {$action}", array_merge([
-            'user_id' => $userId,
-            'ip' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : 'unknown',
-            'user_agent' => isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : 'unknown'
-        ], $details));
+    public static function audit($action, $userId, $details = array()) {
+        self::log(self::LEVEL_SECURITY, "AUDIT: {$action}", array_merge(
+            array(
+                'user_id' => $userId,
+                'ip' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : 'unknown',
+                'user_agent' => isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : 'unknown'
+            ),
+            $details
+        ));
     }
 }
 
@@ -191,7 +201,7 @@ if (!function_exists('logError')) {
      * @deprecated Используйте Logger::error() вместо этой функции
      */
     function logError($message, $level = 'ERROR') {
-        $context = [];
+        $context = array();
         if ($level === 'INFO') {
             Logger::info($message, $context);
         } elseif ($level === 'WARNING') {
@@ -207,22 +217,24 @@ if (!function_exists('logError')) {
 // Автоматический перехват фатальных ошибок
 register_shutdown_function(function() {
     $error = error_get_last();
-    if ($error && in_array($error['type'], [E_ERROR, E_CORE_ERROR, E_COMPILE_ERROR, E_PARSE])) {
-        Logger::critical("Fatal error: {$error['message']}", [
+    // Для PHP 5.6 используем числовые значения вместо констант в in_array
+    $fatalTypes = array(E_ERROR, E_CORE_ERROR, E_COMPILE_ERROR, E_PARSE);
+    if ($error && in_array($error['type'], $fatalTypes)) {
+        Logger::critical("Fatal error: {$error['message']}", array(
             'file' => $error['file'],
             'line' => $error['line'],
             'type' => $error['type']
-        ]);
+        ));
     }
 });
 
 // Перехват исключений
 set_exception_handler(function($exception) {
-    Logger::critical("Uncaught exception: {$exception->getMessage()}", [
+    Logger::critical("Uncaught exception: {$exception->getMessage()}", array(
         'file' => $exception->getFile(),
         'line' => $exception->getLine(),
-        'trace' => substr($exception->getTraceAsString(), 0, 500) // Ограничиваем длину
-    ]);
+        'trace' => substr($exception->getTraceAsString(), 0, 500)
+    ));
     
     // Передаем обработку дальше стандартному обработчику
     throw $exception;
