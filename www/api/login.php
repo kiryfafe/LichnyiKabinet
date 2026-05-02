@@ -25,7 +25,7 @@ if (!checkRateLimit('login', 10, 60)) {
 try {
     $pdo = createPdoUtf8();
 } catch (Exception $e) {
-    Logger::critical("DB connection error in login", ['error' => $e->getMessage()]);
+    Logger::critical("DB connection error in login", array('error' => $e->getMessage()));
     http_response_code(500);
     echo json_encode(array("success" => false, "error" => "DB connection error"));
     exit;
@@ -50,7 +50,7 @@ $identifier = isset($input["identifier"]) ? trim($input["identifier"]) : "";
 $password   = isset($input["password"]) ? trim($input["password"]) : "";
 
 if ($identifier === "" || $password === "") {
-    Logger::security("Login attempt with missing credentials", ['ip' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : 'unknown']);
+    Logger::security("Login attempt with missing credentials", array('ip' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : 'unknown'));
     http_response_code(400);
     echo json_encode(array("success" => false, "error" => "Missing credentials"));
     exit;
@@ -66,17 +66,17 @@ try {
     $stmt->execute(array(":identifier" => $identifier));
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
-    Logger::critical("Database query error in login", ['error' => $e->getMessage()]);
+    Logger::critical("Database query error in login", array('error' => $e->getMessage()));
     http_response_code(500);
     echo json_encode(array("success" => false, "error" => "Database query error"));
     exit;
 }
 
 if (!$user) {
-    Logger::security("Login attempt for non-existent user", [
+    Logger::security("Login attempt for non-existent user", array(
         'identifier' => sanitizeString($identifier),
         'ip' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : 'unknown'
-    ]);
+    ));
     http_response_code(401);
     echo json_encode(array("success" => false, "error" => "User not found"));
     exit;
@@ -84,11 +84,11 @@ if (!$user) {
 
 // ==================== ПРОВЕРКА ПАРОЛЯ ====================
 if (!password_verify($password, $user["password_hash"])) {
-    Logger::security("Failed login attempt (wrong password)", [
+    Logger::security("Failed login attempt (wrong password)", array(
         'identifier' => sanitizeString($identifier),
         'ip' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : 'unknown',
         'user_id' => $user['id']
-    ]);
+    ));
     http_response_code(401);
     echo json_encode(array("success" => false, "error" => "Invalid password"));
     exit;
@@ -96,11 +96,11 @@ if (!password_verify($password, $user["password_hash"])) {
 
 // Проверка активности пользователя (если есть поле is_active)
 if (isset($user['is_active']) && $user['is_active'] == 0) {
-    Logger::security("Login attempt for inactive user", [
+    Logger::security("Login attempt for inactive user", array(
         'identifier' => sanitizeString($identifier),
         'user_id' => $user['id'],
         'ip' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : 'unknown'
-    ]);
+    ));
     http_response_code(403);
     echo json_encode(array("success" => false, "error" => "Account is deactivated"));
     exit;
@@ -123,9 +123,9 @@ try {
         ":expires" => $expires_at
     ));
     
-    Logger::audit('USER_LOGIN', $user['id'], ['method' => 'password']);
+    Logger::audit('USER_LOGIN', $user['id'], array('method' => 'password'));
 } catch (Exception $e) {
-    Logger::critical("Failed to create session in login", ['error' => $e->getMessage(), 'user_id' => $user['id']]);
+    Logger::critical("Failed to create session in login", array('error' => $e->getMessage(), 'user_id' => $user['id']));
     http_response_code(500);
     echo json_encode(array("success" => false, "error" => "Failed to create session"));
     exit;
@@ -148,9 +148,9 @@ echo json_encode(array(
     )
 ), JSON_UNESCAPED_UNICODE);
 
-Logger::info("Successful login", [
+Logger::info("Successful login", array(
     'user_id' => $user['id'],
     'identifier' => sanitizeString($identifier),
     'ip' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : 'unknown'
-]);
+));
 ?>

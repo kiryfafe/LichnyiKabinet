@@ -15,14 +15,14 @@ function authenticateUser() {
     try {
         $pdo = createPdoUtf8();
     } catch (Exception $e) {
-        Logger::critical("DB connection error in authenticateUser", ['error' => $e->getMessage()]);
+        Logger::critical("DB connection error in authenticateUser", array('error' => $e->getMessage()));
         http_response_code(500);
-        echo json_encode(["success" => false, "error" => "DB connection error"]);
+        echo json_encode(array("success" => false, "error" => "DB connection error"));
         return null;
     }
 
     // Поддержка разных способов получения заголовков
-    $headers = [];
+    $headers = array();
     if (function_exists('getallheaders')) {
         $headers = getallheaders();
     } else {
@@ -44,17 +44,17 @@ function authenticateUser() {
     }
     
     if (!$authHeader) {
-        Logger::security("Missing Authorization header", ['ip' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : 'unknown']);
+        Logger::security("Missing Authorization header", array('ip' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : 'unknown'));
         http_response_code(401);
-        echo json_encode(["success" => false, "error" => "Missing token"]);
+        echo json_encode(array("success" => false, "error" => "Missing token"));
         return null;
     }
 
     list($type, $token) = explode(" ", $authHeader, 2);
     if (strtolower($type) !== "bearer" || !$token) {
-        Logger::security("Invalid token format", ['ip' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : 'unknown']);
+        Logger::security("Invalid token format", array('ip' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : 'unknown'));
         http_response_code(401);
-        echo json_encode(["success" => false, "error" => "Invalid token format"]);
+        echo json_encode(array("success" => false, "error" => "Invalid token format"));
         return null;
     }
 
@@ -63,16 +63,16 @@ function authenticateUser() {
                            JOIN users u ON u.id = s.user_id
                            WHERE s.token = :token AND s.expires_at > NOW()
                            LIMIT 1");
-    $stmt->execute([":token" => $token]);
+    $stmt->execute(array(":token" => $token));
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$user) {
-        Logger::security("Invalid or expired token attempt", [
+        Logger::security("Invalid or expired token attempt", array(
             'ip' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : 'unknown',
             'user_agent' => isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : 'unknown'
-        ]);
+        ));
         http_response_code(401);
-        echo json_encode(["success" => false, "error" => "Invalid or expired token"]);
+        echo json_encode(array("success" => false, "error" => "Invalid or expired token"));
         return null;
     }
 
@@ -95,7 +95,7 @@ function isAdmin($user) {
  * @return array|bool Возвращает массив ошибок или true если всё ок
  */
 function validateInput($input, $required) {
-    $errors = [];
+    $errors = array();
     foreach ($required as $field) {
         if (!isset($input[$field]) || trim($input[$field]) === '') {
             $errors[] = "Field '$field' is required";
@@ -139,13 +139,13 @@ function checkRateLimit($action = 'api', $limit = 30, $window = 60) {
     $fp = @fopen($file, 'c+');
     if ($fp === false) {
         // Если не удалось открыть файл, разрешаем запрос (fail-open)
-        Logger::warning("Failed to open rate limit file", ['file' => $file, 'ip' => $ip]);
+        Logger::warning("Failed to open rate limit file", array('file' => $file, 'ip' => $ip));
         return true;
     }
     
     if (!flock($fp, LOCK_EX)) {
         fclose($fp);
-        Logger::warning("Failed to lock rate limit file", ['file' => $file, 'ip' => $ip]);
+        Logger::warning("Failed to lock rate limit file", array('file' => $file, 'ip' => $ip));
         return true;
     }
     
@@ -156,12 +156,12 @@ function checkRateLimit($action = 'api', $limit = 30, $window = 60) {
         if ($data && ($now - $data['time']) < $window) {
             if ($data['count'] >= $limit) {
                 $shouldAllow = false;
-                Logger::security("Rate limit exceeded", [
+                Logger::security("Rate limit exceeded", array(
                     'action' => $action,
                     'ip' => $ip,
                     'count' => $data['count'],
                     'limit' => $limit
-                ]);
+                ));
             } else {
                 $data['count']++;
                 ftruncate($fp, 0);
@@ -171,7 +171,7 @@ function checkRateLimit($action = 'api', $limit = 30, $window = 60) {
             }
         } else {
             // Окно истекло, сбрасываем счётчик
-            $data = ['time' => $now, 'count' => 1];
+            $data = array('time' => $now, 'count' => 1);
             ftruncate($fp, 0);
             rewind($fp);
             fwrite($fp, json_encode($data));
@@ -179,7 +179,7 @@ function checkRateLimit($action = 'api', $limit = 30, $window = 60) {
         }
     } else {
         // Новый файл, создаём запись
-        $data = ['time' => $now, 'count' => 1];
+        $data = array('time' => $now, 'count' => 1);
         fwrite($fp, json_encode($data));
         fflush($fp);
     }
@@ -189,7 +189,7 @@ function checkRateLimit($action = 'api', $limit = 30, $window = 60) {
     
     if (!$shouldAllow) {
         http_response_code(429);
-        echo json_encode(["success" => false, "error" => "Too many requests. Try again later."]);
+        echo json_encode(array("success" => false, "error" => "Too many requests. Try again later."));
         return false;
     }
     
@@ -215,7 +215,7 @@ function generate_secure_token($length = 32) {
         }
     }
     // Самый простой (менее безопасный, но рабочий) резервный вариант
-    Logger::warning("Using weak random generator for token", ['context' => 'generate_secure_token fallback']);
+    Logger::warning("Using weak random generator for token", array('context' => 'generate_secure_token fallback'));
     return bin2hex(md5(uniqid(mt_rand(), true), true));
 }
 
